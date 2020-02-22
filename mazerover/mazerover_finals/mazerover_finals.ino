@@ -1,14 +1,14 @@
 // new
-#include<string.h>
+#include <string.h>
 
-char path[100] = "LBLLLBSBLLBSLL";
-struct mazepath{
-  char eepath[100]="";
+struct mazepath
+{
+  char eepath[100] = "";
   int pathl = 0;
 };
 
 char path_new[10];
-int pathlength=0;
+int pathlength = 0;
 mazepath maze;
 
 #define lc 0 //BLACK
@@ -205,8 +205,9 @@ void loop()
 
 ////////////////////////For path optimization//////////////////
 // Record node and simplify on the run
-void rec_intersection(char dir){
-  maze.eepath[pathlength]=dir;
+void rec_intersection(char dir)
+{
+  maze.eepath[pathlength] = dir;
   maze.pathl = pathlength;
   simplify_path();
   pathlength++;
@@ -214,51 +215,67 @@ void rec_intersection(char dir){
   Serial.println(pathlength);
 }
 
-void simplify_path(){
-  if(maze.eepath[maze.pathl-1]!='B' || maze.pathl<2){
+void simplify_path()
+{
+  // BASE CASE
+  if (maze.eepath[maze.pathl - 1] != 'B' || maze.pathl < 2)
+  {
     Serial.println("i am returned");
-    return;  
+    return;
   }
-  else if(maze.eepath[maze.pathl-1]=='B'){
-    path_new[0]=maze.eepath[maze.pathl-2];
-    path_new[1]=maze.eepath[maze.pathl-1];
-    path_new[2]=maze.eepath[maze.pathl];
+
+  // DO SOMETHING
+  else if (maze.eepath[maze.pathl - 1] == 'B')
+  {
+    path_new[0] = maze.eepath[maze.pathl - 2];
+    path_new[1] = maze.eepath[maze.pathl - 1];
+    path_new[2] = maze.eepath[maze.pathl];
 
     Serial.println(path_new);
-    if (strcmp(path_new, "LBL") == 0){
-      maze.eepath[maze.pathl-2] = 'S';
+    if (strcmp(path_new, "LBL") == 0)
+    {
+      maze.eepath[maze.pathl - 2] = 'S';
     }
-    else if (strcmp(path_new, "LBS") == 0){
-      maze.eepath[maze.pathl-2] = 'R';
+    else if (strcmp(path_new, "LBS") == 0)
+    {
+      maze.eepath[maze.pathl - 2] = 'R';
     }
-    else if (strcmp(path_new, "LBR") == 0){
-      maze.eepath[maze.pathl-2] = 'B';
+    else if (strcmp(path_new, "LBR") == 0)
+    {
+      maze.eepath[maze.pathl - 2] = 'B';
     }
-    else if (strcmp(path_new, "RBL") == 0){
-      maze.eepath[maze.pathl-2] = 'B';
+    else if (strcmp(path_new, "RBL") == 0)
+    {
+      maze.eepath[maze.pathl - 2] = 'B';
     }
-    else if (strcmp(path_new, "SBS") == 0){
-      maze.eepath[maze.pathl-2] = 'B';
+    else if (strcmp(path_new, "SBS") == 0)
+    {
+      maze.eepath[maze.pathl - 2] = 'B';
     }
-    else if (strcmp(path_new, "SBL") == 0){
-      maze.eepath[maze.pathl-2] = 'R';
+    else if (strcmp(path_new, "SBL") == 0)
+    {
+      maze.eepath[maze.pathl - 2] = 'R';
     }
 
-    maze.pathl = maze.pathl-1;
-    pathlength = pathlength-2;
+    maze.pathl = maze.pathl - 1;
+    pathlength = pathlength - 2;
   }
 }
 
 /////////////////optimize the already simplified path//////////////
 
-void maze_optimize(){
+void maze_optimize()
+{
+  char eepath_copy[100] = "";
+  strncpy(eepath_copy, maze.eepath, (maze.pathl+1));
+  int pathl_copy = maze.pathl;
   pathlength = 0;
-  for(int i = 0; i < no_of_steps; i++){
-    rec_intersec(maze.path[i]);
+  maze.pathl = 0;
+  for (int i = 0; i < pathl_copy; i++)
+  {
+    rec_intersec(eepath_copy[i]);
   }
 }
-
-
 
 //////////////////////sensor get value//////////////////////
 
