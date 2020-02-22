@@ -277,6 +277,92 @@ void maze_optimize()
   }
 }
 
+///////////////////path control based on optimized path/////////////////
+
+void optimized_path_control() {
+  int i = 0;
+  if ((s1 != lc) && (s2 != lc) && (s3 != lc) && (s4 != lc) && (s5 != lc) && (s6 != lc) && (s7 != lc) && (s8 != lc)) {
+    if ((left > leftthres) && (right < rightthres)) { //right sharp turns
+      brake();
+      delay(5);
+      readsensors();
+      while (s6 != lc) {
+        sharp_right_turn();
+        readsensors();
+      }
+      brake();
+      //delay(20);
+      left = 1000;
+      right = 1000;
+    }
+    else if ((left < leftthres) && (right > rightthres)) { //left sharp turn
+      brake();
+      delay(5);
+      readsensors();
+      while (s3 != lc) {
+        sharp_left_turn();
+        readsensors();
+      }
+      brake();
+      //delay(20);
+      left = 1000;
+      right = 1000;
+    }
+    else if (left < 200 && right < 200) { // 'T' -> go left or right based on path[i]
+      if (maze.eepath[i] == 'L') {
+        sharp_left_turn();
+      }
+      else if (maze.eepath[i] == 'R') {
+        sharp_right_turn();
+      }
+      i++;
+    }
+  }
+  else if ((s1 != lc) && (s2 != lc) && ((s3 == lc) || (s4 == lc) || (s5 == lc) || (s6 == lc)) && (s7 != lc) && (s8 != lc)) {
+
+    if (left > 100 && left < 1000 && right > 1000) { //straight or left -> left
+      if (maze.eepath[i] == 'L') {
+        left_T();
+      }
+      else if (maze.eepath[i] == 'S') {
+        pid();
+      }
+      i++;
+    }
+
+    else if (left > 100 && left < 1000 && right > 1000) { //right_T(); straight or right -> straight
+      if (maze.eepath[i] == 'R') {
+        right_T();
+      }
+      else if (maze.eepath[i] == 'S') {
+        pid();
+      }
+      i++;
+    }
+
+    else if (left < 100 && right < 100) { //cross -> left
+      if (maze.eepath[i] == 'L') {
+        left_T();
+      }
+      else if (maze.eepath[i] == 'R') {
+        right_T();
+      }
+      else if (maze.eepath[i] == 'S') {
+        pid();
+      }
+      i++;
+    }
+  }
+  else if ((s1 == lc) && (s2 == lc) && (s3 == lc) && (s4 == lc) && (s5 == lc) && (s6 == lc) && (s7 == lc) && (s8 == lc)) {
+
+    if (brake_count > brake_thres) { //end of maze
+      stop_end();
+      flag = false;
+    }
+  }
+
+}
+
 //////////////////////sensor get value//////////////////////
 
 void readsensors()
