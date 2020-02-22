@@ -12,6 +12,10 @@ char path_new[10];
 int pathlength = 0;
 mazepath maze;
 
+// EEPROM address
+int eeAddress=0;
+int flag="0" // 0 for 1st run, 1 for optimized run
+
 #define lc 0 //BLACK
 #define sc 1 //WHITE
 
@@ -64,6 +68,9 @@ void setup()
   pinMode(rm1, OUTPUT);
   pinMode(rm2, OUTPUT);
 
+  EEPROM.get(0, maze)
+  EEPROM.get(1, flag)
+  
   left = 1000;
   right = 1000;
 }
@@ -186,6 +193,9 @@ void loop()
     {
       stop_end();
       maze_optimize();
+      flag=1;
+      savetoeeprom(maze);
+      savetoeeprom(flag);
       stop_end();
       delay(5000);
     }
@@ -415,6 +425,12 @@ void optimized_path_control()
       delay(10000);
     }
   }
+}
+
+///////////////////////////save to EEPRROM
+void savetoeeprom(char val) {
+  EEPROM.put(eeAddress, val);
+  eeAddress++;
 }
 
 //////////////////////sensor get value//////////////////////
