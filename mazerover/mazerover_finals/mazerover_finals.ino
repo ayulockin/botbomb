@@ -1,5 +1,6 @@
 // new
 #include <string.h>
+#include<EEPROM.h>
 
 struct mazepath
 {
@@ -44,10 +45,11 @@ int right_min = 0;
 ///////////////sharp turn parameters///////////////
 
 int left = 0, right = 0;
-int leftthres = 300;    //150
-int rightthres = 300;   //150
-int tthres = 200;       // for the T section only
-int left_t_delay = 250; //delay for left T
+int leftthres = 300;     //150
+int rightthres = 300;    //150
+int tthres = 200;        // for the T section only
+int left_t_delay = 250;  //delay for left T
+int right_t_delay = 250; //delay for right T
 
 /////////////brake parameters///////////////
 
@@ -153,7 +155,6 @@ void loop()
   // STRAIGHT OR LEFT
   // STRAIGHT OR RIGHT
   // CROSS
-
   else if ((s1 != lc) && (s4 == lc) && (s5 == lc) && (s8 != lc))
   {
     // straight or left -> left
@@ -169,7 +170,7 @@ void loop()
       rec_intersection('S');
     }
     //cross -> left
-    else if ((left < 500) && (right < 500))
+    else
     {
       left_T();
       rec_intersection('L');
@@ -267,7 +268,7 @@ void simplify_path()
 void maze_optimize()
 {
   char eepath_copy[100] = "";
-  strncpy(eepath_copy, maze.eepath, (maze.pathl+1));
+  strncpy(eepath_copy, maze.eepath, (maze.pathl + 1));
   int pathl_copy = maze.pathl;
   pathlength = 0;
   maze.pathl = 0;
@@ -279,88 +280,141 @@ void maze_optimize()
 
 ///////////////////path control based on optimized path/////////////////
 
-void optimized_path_control() {
+void optimized_path_control()
+{
   int i = 0;
-  if ((s1 != lc) && (s2 != lc) && (s3 != lc) && (s4 != lc) && (s5 != lc) && (s6 != lc) && (s7 != lc) && (s8 != lc)) {
-    if ((left > leftthres) && (right < rightthres)) { //right sharp turns
+  // WHEN SENSOR OVERSHOOTS AND FINDS NOTHING
+  // RIGHT ONLY
+  // LEFT ONLY
+  // T
+  // DEAD END
+  if ((s1 != lc) && (s2 != lc) && (s3 != lc) && (s4 != lc) && (s5 != lc) && (s6 != lc) && (s7 != lc) && (s8 != lc))
+  {
+    // RIGHT SHARP TURNS
+    if ((left > leftthres) && (right < rightthres))
+    {
       brake();
-      delay(5);
       readsensors();
-      while (s6 != lc) {
+      while ((s4 != lc) && (s5 != lc))
+      {
         sharp_right_turn();
         readsensors();
       }
       brake();
-      //delay(20);
       left = 1000;
       right = 1000;
     }
-    else if ((left < leftthres) && (right > rightthres)) { //left sharp turn
+
+    // LEFT SHARP TURN
+    else if ((left < leftthres) && (right > rightthres))
+    {
       brake();
-      delay(5);
       readsensors();
-      while (s3 != lc) {
+      while ((s4 != lc) && (s5 != lc))
+      {
         sharp_left_turn();
         readsensors();
       }
       brake();
-      //delay(20);
       left = 1000;
       right = 1000;
     }
-    else if (left < 200 && right < 200) { // 'T' -> go left or right based on path[i]
-      if (maze.eepath[i] == 'L') {
-        sharp_left_turn();
+
+    // 'T' -> go left or right based on path[i]
+    else if ((left < tthres) && (right < tthres))
+    {
+      if (maze.eepath[i] == 'L')
+      {
+        brake();
+        readsensors();
+        while ((s4 != lc) && (s5 != lc))
+        {
+          sharp_left_turn();
+          readsensors();
+        }
+        brake();
+        left = 1000;
+        right = 1000;
       }
-      else if (maze.eepath[i] == 'R') {
-        sharp_right_turn();
+      else if (maze.eepath[i] == 'R')
+      {
+        brake();
+        readsensors();
+        while ((s4 != lc) && (s5 != lc))
+        {
+          sharp_right_turn();
+          readsensors();
+        }
+        brake();
+        left = 1000;
+        right = 1000;
       }
       i++;
     }
   }
-  else if ((s1 != lc) && (s2 != lc) && ((s3 == lc) || (s4 == lc) || (s5 == lc) || (s6 == lc)) && (s7 != lc) && (s8 != lc)) {
 
-    if (left > 100 && left < 1000 && right > 1000) { //straight or left -> left
-      if (maze.eepath[i] == 'L') {
+  // WHEN SENSOR OVERSHOOTS AND FINDS A LINE
+  // STRAIGHT OR LEFT
+  // STRAIGHT OR RIGHT
+  // CROSS
+  else if ((s1 != lc) && (s4 == lc) && (s5 == lc) && (s8 != lc))
+  {
+    // straight or left -> choose
+    if ((left < 500) && (right > 1000))
+    {
+      if (maze.eepath[i] == 'L')
+      {
         left_T();
       }
-      else if (maze.eepath[i] == 'S') {
-        pid();
+      else if (maze.eepath[i] == 'S')
+      {
+        straight();
       }
       i++;
     }
 
-    else if (left > 100 && left < 1000 && right > 1000) { //right_T(); straight or right -> straight
-      if (maze.eepath[i] == 'R') {
+    // straight or right -> choose
+    else if ((left > 1000) && (right < 500))
+    {
+      if (maze.eepath[i] == 'R')
+      {
         right_T();
       }
-      else if (maze.eepath[i] == 'S') {
-        pid();
+      else if (maze.eepath[i] == 'S')
+      {
+        straight();
       }
       i++;
     }
 
-    else if (left < 100 && right < 100) { //cross -> left
-      if (maze.eepath[i] == 'L') {
+    // CROSS -> L, R, S
+    else
+    {
+      if (maze.eepath[i] == 'L')
+      {
         left_T();
       }
-      else if (maze.eepath[i] == 'R') {
+      else if (maze.eepath[i] == 'R')
+      {
         right_T();
       }
-      else if (maze.eepath[i] == 'S') {
-        pid();
+      else if (maze.eepath[i] == 'S')
+      {
+        straight();
       }
       i++;
     }
   }
-  else if ((s1 == lc) && (s2 == lc) && (s3 == lc) && (s4 == lc) && (s5 == lc) && (s6 == lc) && (s7 == lc) && (s8 == lc)) {
 
-    if (brake_count > brake_thres) { //end of maze
+  else if ((s1 == lc) && (s2 == lc) && (s3 == lc) && (s4 == lc) && (s5 == lc) && (s6 == lc) && (s7 == lc) && (s8 == lc))
+  {
+
+    if (brake_count > brake_thres)
+    { //end of maze
       stop_end();
-      flag = false;
+      delay(10000);
     }
   }
-
 }
 
 //////////////////////sensor get value//////////////////////
@@ -493,6 +547,23 @@ void left_T()
   // TAKE A LEFT TO GET OUT OF LINE
   sharp_left_turn();
   delay(left_t_delay);
+  readsensors();
+  while (s4 != lc && s5 != lc)
+  {
+    sharp_left_turn();
+    readsensors();
+  }
+  brake();
+  left = 1000;
+  right = 1000;
+}
+
+void right_T()
+{
+  brake();
+  // TAKE A LEFT TO GET OUT OF LINE
+  sharp_right_turn();
+  delay(right_t_delay);
   readsensors();
   while (s4 != lc && s5 != lc)
   {
