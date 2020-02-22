@@ -12,9 +12,7 @@ char path_new[10];
 int pathlength = 0;
 mazepath maze;
 
-// EEPROM address
-int eeAddress=0;
-int flag="0" // 0 for 1st run, 1 for optimized run
+int flag=0; // 0 for 1st run, 1 for optimized run
 
 #define lc 0 //BLACK
 #define sc 1 //WHITE
