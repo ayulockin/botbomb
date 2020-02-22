@@ -127,8 +127,7 @@ void loop()
 
 ////////////////////////For path optimization//////////////////
 // Record node and simplify on the run
-void rec_intersection(char dir)
-{
+void rec_intersection(char dir){
   maze.eepath[pathlength] = dir;
   maze.pathl = pathlength;
   simplify_path();
@@ -193,9 +192,8 @@ void maze_optimize()
   int pathl_copy = maze.pathl;
   pathlength = 0;
   maze.pathl = 0;
-  for (int i = 0; i < pathl_copy; i++)
-  {
-    rec_intersec(eepath_copy[i]);
+  for (int i = 0; i < pathl_copy; i++){
+    rec_intersection(eepath_copy[i]);
   }
 }
 
@@ -244,7 +242,7 @@ void priority_path_control()
     else if ((left < tthres) && (right < tthres))
     {
       T_intersection();
-      rec_intersection('L')
+      rec_intersection('L');
     }
 
     // DEAD END
