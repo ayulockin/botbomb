@@ -66,8 +66,8 @@ void setup()
   pinMode(rm1, OUTPUT);
   pinMode(rm2, OUTPUT);
 
-  EEPROM.get(0, maze)
-  EEPROM.get(1, flag)
+  EEPROM.get(0, maze);
+  EEPROM.get(1, flag);
   
   left = 1000;
   right = 1000;
@@ -104,7 +104,107 @@ void loop()
     brake_count = 0;
   }
 
-  // WHEN SENSOR OVERSHOOTS AND FINDS NOTHING
+  if (flag==0){
+    priority_path_control();
+  }
+  else if (flag==1){
+    optimized_path_control();
+  }
+
+  
+
+  pid();
+  left = left + 1;
+  right = right + 1;
+  if (left > 18000)
+  {
+    left = 1000;
+  }
+  if (right > 18000)
+  {
+    right = 1000;
+  }
+}
+
+////////////////////////For path optimization//////////////////
+// Record node and simplify on the run
+void rec_intersection(char dir)
+{
+  maze.eepath[pathlength] = dir;
+  maze.pathl = pathlength;
+  simplify_path();
+  pathlength++;
+  Serial.println(maze.pathl);
+  Serial.println(pathlength);
+}
+
+void simplify_path()
+{
+  // BASE CASE
+  if (maze.eepath[maze.pathl - 1] != 'B' || maze.pathl < 2)
+  {
+    Serial.println("i am returned");
+    return;
+  }
+
+  // DO SOMETHING
+  else if (maze.eepath[maze.pathl - 1] == 'B')
+  {
+    path_new[0] = maze.eepath[maze.pathl - 2];
+    path_new[1] = maze.eepath[maze.pathl - 1];
+    path_new[2] = maze.eepath[maze.pathl];
+
+    Serial.println(path_new);
+    if (strcmp(path_new, "LBL") == 0)
+    {
+      maze.eepath[maze.pathl - 2] = 'S';
+    }
+    else if (strcmp(path_new, "LBS") == 0)
+    {
+      maze.eepath[maze.pathl - 2] = 'R';
+    }
+    else if (strcmp(path_new, "LBR") == 0)
+    {
+      maze.eepath[maze.pathl - 2] = 'B';
+    }
+    else if (strcmp(path_new, "RBL") == 0)
+    {
+      maze.eepath[maze.pathl - 2] = 'B';
+    }
+    else if (strcmp(path_new, "SBS") == 0)
+    {
+      maze.eepath[maze.pathl - 2] = 'B';
+    }
+    else if (strcmp(path_new, "SBL") == 0)
+    {
+      maze.eepath[maze.pathl - 2] = 'R';
+    }
+
+    maze.pathl = maze.pathl - 1;
+    pathlength = pathlength - 2;
+  }
+}
+
+/////////////////optimize the already simplified path//////////////
+
+void maze_optimize()
+{
+  char eepath_copy[100] = "";
+  strncpy(eepath_copy, maze.eepath, (maze.pathl + 1));
+  int pathl_copy = maze.pathl;
+  pathlength = 0;
+  maze.pathl = 0;
+  for (int i = 0; i < pathl_copy; i++)
+  {
+    rec_intersec(eepath_copy[i]);
+  }
+}
+
+//////////////////// Run on Left Hand priority ///////////
+
+void priority_path_control()
+{
+ // WHEN SENSOR OVERSHOOTS AND FINDS NOTHING
   // RIGHT ONLY
   // LEFT ONLY
   // T
@@ -192,98 +292,12 @@ void loop()
       stop_end();
       maze_optimize();
       flag=1;
-      savetoeeprom(maze);
-      savetoeeprom(flag);
+      EEPROM.put(0, maze);
+      EEPROM.put(1, flag);
       stop_end();
       delay(5000);
     }
-  }
-
-  pid();
-  left = left + 1;
-  right = right + 1;
-  if (left > 18000)
-  {
-    left = 1000;
-  }
-  if (right > 18000)
-  {
-    right = 1000;
-  }
-}
-
-////////////////////////For path optimization//////////////////
-// Record node and simplify on the run
-void rec_intersection(char dir)
-{
-  maze.eepath[pathlength] = dir;
-  maze.pathl = pathlength;
-  simplify_path();
-  pathlength++;
-  Serial.println(maze.pathl);
-  Serial.println(pathlength);
-}
-
-void simplify_path()
-{
-  // BASE CASE
-  if (maze.eepath[maze.pathl - 1] != 'B' || maze.pathl < 2)
-  {
-    Serial.println("i am returned");
-    return;
-  }
-
-  // DO SOMETHING
-  else if (maze.eepath[maze.pathl - 1] == 'B')
-  {
-    path_new[0] = maze.eepath[maze.pathl - 2];
-    path_new[1] = maze.eepath[maze.pathl - 1];
-    path_new[2] = maze.eepath[maze.pathl];
-
-    Serial.println(path_new);
-    if (strcmp(path_new, "LBL") == 0)
-    {
-      maze.eepath[maze.pathl - 2] = 'S';
-    }
-    else if (strcmp(path_new, "LBS") == 0)
-    {
-      maze.eepath[maze.pathl - 2] = 'R';
-    }
-    else if (strcmp(path_new, "LBR") == 0)
-    {
-      maze.eepath[maze.pathl - 2] = 'B';
-    }
-    else if (strcmp(path_new, "RBL") == 0)
-    {
-      maze.eepath[maze.pathl - 2] = 'B';
-    }
-    else if (strcmp(path_new, "SBS") == 0)
-    {
-      maze.eepath[maze.pathl - 2] = 'B';
-    }
-    else if (strcmp(path_new, "SBL") == 0)
-    {
-      maze.eepath[maze.pathl - 2] = 'R';
-    }
-
-    maze.pathl = maze.pathl - 1;
-    pathlength = pathlength - 2;
-  }
-}
-
-/////////////////optimize the already simplified path//////////////
-
-void maze_optimize()
-{
-  char eepath_copy[100] = "";
-  strncpy(eepath_copy, maze.eepath, (maze.pathl + 1));
-  int pathl_copy = maze.pathl;
-  pathlength = 0;
-  maze.pathl = 0;
-  for (int i = 0; i < pathl_copy; i++)
-  {
-    rec_intersec(eepath_copy[i]);
-  }
+  } 
 }
 
 ///////////////////path control based on optimized path/////////////////
@@ -423,12 +437,6 @@ void optimized_path_control()
       delay(10000);
     }
   }
-}
-
-///////////////////////////save to EEPRROM
-void savetoeeprom(char val) {
-  EEPROM.put(eeAddress, val);
-  eeAddress++;
 }
 
 //////////////////////sensor get value//////////////////////
