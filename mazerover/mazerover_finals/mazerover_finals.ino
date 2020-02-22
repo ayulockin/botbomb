@@ -13,6 +13,7 @@ int pathlength = 0;
 mazepath maze;
 
 int flag=0; // 0 for 1st run, 1 for optimized run
+int idx = 0;
 
 #define lc 0 //BLACK
 #define sc 1 //WHITE
@@ -110,8 +111,6 @@ void loop()
   else if (flag==1){
     optimized_path_control();
   }
-
-  
 
   pid();
   left = left + 1;
@@ -304,7 +303,6 @@ void priority_path_control()
 
 void optimized_path_control()
 {
-  int i = 0;
   // WHEN SENSOR OVERSHOOTS AND FINDS NOTHING
   // RIGHT ONLY
   // LEFT ONLY
@@ -345,7 +343,7 @@ void optimized_path_control()
     // 'T' -> go left or right based on path[i]
     else if ((left < tthres) && (right < tthres))
     {
-      if (maze.eepath[i] == 'L')
+      if (maze.eepath[idx] == 'L')
       {
         brake();
         readsensors();
@@ -358,7 +356,7 @@ void optimized_path_control()
         left = 1000;
         right = 1000;
       }
-      else if (maze.eepath[i] == 'R')
+      else if (maze.eepath[idx] == 'R')
       {
         brake();
         readsensors();
@@ -371,7 +369,7 @@ void optimized_path_control()
         left = 1000;
         right = 1000;
       }
-      i++;
+      idx++;
     }
   }
 
@@ -384,47 +382,47 @@ void optimized_path_control()
     // straight or left -> choose
     if ((left < 500) && (right > 1000))
     {
-      if (maze.eepath[i] == 'L')
+      if (maze.eepath[idx] == 'L')
       {
         left_T();
       }
-      else if (maze.eepath[i] == 'S')
+      else if (maze.eepath[idx] == 'S')
       {
         straight();
       }
-      i++;
+      idx++;
     }
 
     // straight or right -> choose
     else if ((left > 1000) && (right < 500))
     {
-      if (maze.eepath[i] == 'R')
+      if (maze.eepath[idx] == 'R')
       {
         right_T();
       }
-      else if (maze.eepath[i] == 'S')
+      else if (maze.eepath[idx] == 'S')
       {
         straight();
       }
-      i++;
+      idx++;
     }
 
     // CROSS -> L, R, S
     else
     {
-      if (maze.eepath[i] == 'L')
+      if (maze.eepath[idx] == 'L')
       {
         left_T();
       }
-      else if (maze.eepath[i] == 'R')
+      else if (maze.eepath[idx] == 'R')
       {
         right_T();
       }
-      else if (maze.eepath[i] == 'S')
+      else if (maze.eepath[idx] == 'S')
       {
         straight();
       }
-      i++;
+      idx++;
     }
   }
 
