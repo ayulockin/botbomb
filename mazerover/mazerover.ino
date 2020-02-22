@@ -1,5 +1,5 @@
-#define lc 0 // black
-#define sc 1 //white
+#define lc 0 //BLACK
+#define sc 1 //WHITE
 
 /////////////motor pinout/////////////////
 
@@ -15,13 +15,13 @@ int s1, s2, s3, s4, s5, s6, s7, s8;
 float error = 0;
 float prev_error = 0;
 float Kp = 37.5;
-float Kd = 75;  //100/150
+float Kd = 75; //100/150
 float P = 0;
 float D = 0;
 float pd = 0;
 
-int lms, rms;
-int bs = 160;
+int lms, rms; //left motor speed, right motor speed
+int bs = 160; //base speed
 
 int left_max = 200;
 int right_max = 202; //based on motor speed diff
@@ -33,13 +33,17 @@ int right_min = 0;
 int left = 0, right = 0;
 int leftthres = 300;    //150
 int rightthres = 300;   //150
+int tthres = 200;       // for the T section only
+int left_t_delay = 250; //delay for left T
 
 /////////////brake parameters///////////////
 
 int brake_count = 0;
 int brake_thres = 400;
 
-void setup() {
+////////////setup///////////////////////////
+void setup()
+{
   pinMode(lm1, OUTPUT);
   pinMode(lm2, OUTPUT);
   pinMode(rm1, OUTPUT);
@@ -47,37 +51,53 @@ void setup() {
 
   left = 1000;
   right = 1000;
-
 }
 
 ///////////////////LOOP STARTS///////////////
 
-void loop() {
+void loop()
+{
   readsensors();
   error_map();
 
-  if (s1 == lc) {
+  // This is for the left most and right most sensors
+  if (s1 == lc)
+  {
     left = 0;
   }
-  if (s8 == lc) {
+  if (s8 == lc)
+  {
     right = 0;
   }
 
-  if (left == 0 && right == 0) { //for braking
-    if (brake_count > 15000) {
+  // For break_count checking
+  if (left == 0 && right == 0)
+  {
+    if (brake_count > 15000)
+    {
       brake_count = 15000;
     }
     brake_count++;
   }
-  else {
+  else
+  {
     brake_count = 0;
   }
 
-  if ((s1 != lc) && (s2 != lc) && (s3 != lc) && (s4 != lc) && (s5 != lc) && (s6 != lc) && (s7 != lc) && (s8 != lc)) {
-    if ((left > leftthres) && (right < rightthres)) { //right sharp turns
+  // WHEN SENSOR OVERSHOOTS AND FINDS NOTHING
+  // RIGHT ONLY
+  // LEFT ONLY
+  // T
+  // DEAD END
+  if ((s1 != lc) && (s2 != lc) && (s3 != lc) && (s4 != lc) && (s5 != lc) && (s6 != lc) && (s7 != lc) && (s8 != lc))
+  {
+    // RIGHT SHARP TURNS
+    if ((left > leftthres) && (right < rightthres))
+    {
       brake();
       readsensors();
-      while ((s4 != lc) && (s5 != lc)) {
+      while ((s4 != lc) && (s5 != lc))
+      {
         sharp_right_turn();
         readsensors();
       }
@@ -85,10 +105,14 @@ void loop() {
       left = 1000;
       right = 1000;
     }
-    else if ((left < leftthres) && (right > rightthres)) { //left sharp turn
+
+    // LEFT SHARP TURN
+    else if ((left < leftthres) && (right > rightthres))
+    {
       brake();
       readsensors();
-      while ((s4 != lc) && (s5 != lc)) {
+      while ((s4 != lc) && (s5 != lc))
+      {
         sharp_left_turn();
         readsensors();
       }
@@ -96,47 +120,72 @@ void loop() {
       left = 1000;
       right = 1000;
     }
-    else if (left < 200 && right < 200) { // 'T' -> go left
+
+    // 'T' -> go left
+    else if ((left < tthres) && (right < tthres))
+    {
       T_intersection();
     }
-    else if (left > 950 && right > 950) { //dead end
+
+    // DEAD END
+    else
+    {
       dead_end();
     }
   }
-  else if ((s1 != lc) && (s4 == lc) && (s5 == lc) && (s8 != lc)) {
 
-    if (left > 100 && left < 1000 && right > 1000) { //straight or left -> left
+  // WHEN SENSOR OVERSHOOTS AND FINDS A LINE
+  // STRAIGHT OR LEFT
+  // STRAIGHT OR RIGHT
+  // CROSS
+
+  else if ((s1 != lc) && (s4 == lc) && (s5 == lc) && (s8 != lc))
+  {
+    // straight or left -> left
+    if ((left < 500) && (right > 1000))
+    {
       left_T();
     }
-
-    else if (left > 1000 && right < 1000 && right > 100) { //right_T(); straight or right -> straight
+    // straight or right -> straight
+    else if ((left > 1000) && (right < 500))
+    {
       straight();
     }
+    //cross -> left
+    else if ((left < 500) && (right < 500))
+    {
+      left_T();
+    }
+  }
+  // WHEN SENSOR OVERSHOOTS AND FINDS ALL BLACK
+  else if ((s1 == lc) && (s2 == lc) && (s3 == lc) && (s4 == lc) && (s5 == lc) && (s6 == lc) && (s7 == lc) && (s8 == lc))
+  {
+    // END OF MAZE
+    // TO DO:
+    // CHANGE break_thres in accordance to stopping at intersection and end maze.
+    if (brake_count > brake_thres)
+    {
+      stop_end();
+    }
+  }
 
-    else if (left < 500 && right < 500) { //cross -> left
-      cross();
-    }
-  }
-  else if((s1==lc)&&(s2==lc)&&(s3==lc)&&(s4==lc)&&(s5==lc)&&(s6==lc)&&(s7==lc)&&(s8==lc)){
-    if (brake_count>brake_thres){  //end of maze
-       stop_end();
-    }
-  }
-  
   pid();
   left = left + 1;
   right = right + 1;
-  if (left > 18000) {
+  if (left > 18000)
+  {
     left = 1000;
   }
-  if (right > 18000) {
+  if (right > 18000)
+  {
     right = 1000;
   }
 }
 
 //////////////////////sensor get value//////////////////////
 
-void readsensors() {
+void readsensors()
+{
   s1 = digitalRead(A0);
   s2 = digitalRead(A1);
   s3 = digitalRead(A2);
@@ -149,7 +198,8 @@ void readsensors() {
 
 ///////////////////////error definition/////////////////////
 
-void error_map() {
+void error_map()
+{
   if ((s3 == sc) && (s4 == lc) && (s5 == lc) && (s6 == sc))
     error = 0;
   else if ((s3 == lc) && (s4 == lc) && (s5 == lc) && (s6 == sc))
@@ -202,7 +252,8 @@ void error_map() {
 
 ///////////////////////pid computation/////////////////////
 
-void pid() {
+void pid()
+{
   readsensors();
   error_map();
 
@@ -231,65 +282,22 @@ void pid() {
     rms = right_min;
   }
 
-  analogWrite(lm1, lms + 2);
+  analogWrite(lm1, lms);
   analogWrite(lm2, 0);
   analogWrite(rm1, rms);
   analogWrite(rm2, 0);
 
   prev_error = error;
-
 }
 
 /////////////////////////intersection handling////////////////////
 
-void T_intersection() {
+void T_intersection()
+{
   brake();
-  delay(30);
-  while ((s4 != lc) && (s5 != lc)) { 
-    sharp_left_turn();
-    readsensors();
-  }
-  brake();
-  //delay(20);
-  left = 1000;
-  right = 1000;
-}
-
-void left_T() {
-  brake();
-  delay(30);
-  sharp_left_turn();
-  delay(250);
-  while (s4 != lc && s5 != lc) {
-    sharp_left_turn();
-    readsensors();
-  }
-  brake();
-  left = 1000;
-  right = 1000;
-}
-
-void right_T() {
-  brake();
-  delay(30);
-  sharp_right_turn();
-  delay(250);
-  while (s4 != lc && s5 != lc) {
-    sharp_right_turn();
-    readsensors();
-  }
-  brake();
-  left = 1000;
-  right = 1000;
-}
-
-void cross() {
-  brake();
-  delay(50);
-  sharp_left_turn();
-  delay(400);
   readsensors();
-  while (s4 != lc && s5 != lc) { //go left
+  while ((s4 != lc) && (s5 != lc))
+  {
     sharp_left_turn();
     readsensors();
   }
@@ -298,10 +306,29 @@ void cross() {
   right = 1000;
 }
 
-void dead_end() {
+void left_T()
+{
   brake();
-  delay(100);
-  while ((s4 != lc) && (s5 != lc)) {
+  // TAKE A LEFT TO GET OUT OF LINE
+  sharp_left_turn();
+  delay(left_t_delay);
+  readsensors();
+  while (s4 != lc && s5 != lc)
+  {
+    sharp_left_turn();
+    readsensors();
+  }
+  brake();
+  left = 1000;
+  right = 1000;
+}
+
+void dead_end()
+{
+  brake();
+  readsensors();
+  while ((s4 != lc) && (s5 != lc))
+  {
     sharp_right_turn();
     readsensors();
   }
@@ -310,44 +337,40 @@ void dead_end() {
   right = 1000;
 }
 
-void stop_end() {
+void stop_end()
+{
   brake();
-  // Shortest path
   delay(10000);
 }
 
-
 ////////////////////////////turn functions////////////////////////
 
-void straight() { // Changed from 110 -> 90
+void straight()
+{ // Changed from 110 -> 90
   analogWrite(lm1, 90);
   analogWrite(lm2, 0);
   analogWrite(rm1, 90);
   analogWrite(rm2, 0);
 }
 
-void sharp_left_turn() { // Changed from 110 -> 90
+void sharp_left_turn()
+{ // Changed from 110 -> 90
   analogWrite(lm1, 0);
   analogWrite(lm2, 90);
   analogWrite(rm1, 90);
   analogWrite(rm2, 0);
 }
 
-void sharp_right_turn() {
+void sharp_right_turn()
+{
   analogWrite(lm1, 90); // Changed from 110 -> 90
   analogWrite(lm2, 0);
   analogWrite(rm1, 0);
   analogWrite(rm2, 90);
 }
 
-void about_turn() { // Changed from 110 -> 90
-  analogWrite(lm1, 0);
-  analogWrite(lm2, 90);
-  analogWrite(rm1, 90);
-  analogWrite(rm2, 0);
-}
-
-void brake() {
+void brake()
+{
   analogWrite(lm1, 255);
   analogWrite(lm2, 255);
   analogWrite(rm1, 255);
