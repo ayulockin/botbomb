@@ -309,7 +309,7 @@ void maze_optimize(){
   }
 }
 
-//////////////////////storing the optimized path/////////////////
+//////////////////////storing the optimized path///////////////////
 
 void rec_intersec(char dir) {
   maze.eepath[pathlength] = dir;

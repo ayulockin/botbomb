@@ -71,23 +71,4 @@ void simplify_path(){
     pathlength = pathlength-2;
     
   }
-  
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
